@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # order-db:
+  #   image: postgres:14-alpine
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #     POSTGRES_DB: orders
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - order-db-data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U postgres"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 5
+
+  inventory-db:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: inventory
+    ports:
+      - "5433:5432"
+    volumes:
+      - inventory-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  inventory-service:
+    build:
+      context: ./inventory-service
+      dockerfile: Dockerfile
+    environment:
+      - SERVER_PORT=9090
+      - DATABASE_URL=postgres://postgres:postgres@inventory-db:5432/inventory?sslmode=disable
+    ports:
+      - "9090:9090"
+    depends_on:
+      inventory-db:
+        condition: service_healthy
+
+  # order-service:
+  #   build:
+  #     context: .
+  #     dockerfile: order-service/Dockerfile
+  #   environment:
+  #     - SERVER_PORT=8080
+  #     - DATABASE_URL=postgres://postgres:postgres@order-db:5432/orders?sslmode=disable
+  #     - INVENTORY_SERVICE_URL=inventory-service:9090
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     order-db:
+  #       condition: service_healthy
+  #     inventory-service:
+  #       condition: service_started
+
+volumes:
+  # order-db-data:
+  inventory-db-data:

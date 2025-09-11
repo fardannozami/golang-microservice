@@ -4,8 +4,45 @@ package inventory;
 
 option go_package = "/inventory-service/proto;inventorypb";
 
-message Product {
-  string id = 1;
-  string name = 2;
-  int32 quantity = 3;
+service InventoryService {
+  // Check if product is available in inventory
+  rpc CheckStock(CheckStockRequest) returns (CheckStockResponse) {}
+  
+  // Reserve product stock for an order
+  rpc ReserveStock(ReserveStockRequest) returns (ReserveStockResponse) {}
+  
+  // Release reserved stock in case of failed order
+  rpc ReleaseStock(ReleaseStockRequest) returns (ReleaseStockResponse) {}
+}
+
+message CheckStockRequest {
+  string product_id = 1;
+  int32 quantity = 2;
+}
+
+message CheckStockResponse {
+  bool available = 1;
+  string message = 2;
+}
+
+message ReserveStockRequest {
+  string product_id = 1;
+  int32 quantity = 2;
+  string order_id = 3;
+}
+
+message ReserveStockResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ReleaseStockRequest {
+  string product_id = 1;
+  int32 quantity = 2;
+  string order_id = 3;
+}
+
+message ReleaseStockResponse {
+  bool success = 1;
+  string message = 2;
 }

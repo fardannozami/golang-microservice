@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"net/http"
 	"sync"
 	"testing"
@@ -14,7 +15,7 @@ func TestRaceConditionOrders(t *testing.T) {
 		"items": [
 			{
 				"product_id": "1",
-				"quantity": 11,
+				"quantity": 2,
 				"price": 10.99
 			}
 		]
@@ -44,8 +45,12 @@ func TestRaceConditionOrders(t *testing.T) {
 			}
 			defer resp.Body.Close()
 
-			if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-				t.Errorf("goroutine %d got unexpected status: %d", id, resp.StatusCode)
+			body, _ := io.ReadAll(resp.Body)
+
+			if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
+				t.Logf("goroutine %d SUCCESS, response: %s", id, string(body))
+			} else {
+				t.Errorf("goroutine %d FAILED, status: %d, response: %s", id, resp.StatusCode, string(body))
 			}
 		}(i)
 	}

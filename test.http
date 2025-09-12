@@ -13,3 +13,19 @@ Content-Type: application/json
     }
   ]
 }
+
+### GET ORDER BY ID
+GET http://localhost:8080/api/v1/orders/efd31cab-97cb-435c-8c24-6d87bf1720a8
+Accept: application/json
+Content-Type: application/json
+
+{
+  "user_id": "customer123",
+  "items": [
+    {
+      "product_id": "1",
+      "quantity": 11,
+      "price": 10.99
+    }
+  ]
+}

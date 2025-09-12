@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"google.golang.org/grpc"
@@ -65,6 +66,7 @@ func (c *inventoryClient) CheckStock(ctx context.Context, productID string, quan
 	defer cancel()
 
 	// Call inventory service
+	log.Printf("[order-service] -> gRPC CheckStock product_id=%s qty=%d", productID, quantity)
 	resp, err := c.client.CheckStock(ctx, &pb.CheckStockRequest{
 		ProductId: productID,
 		Quantity:  int32(quantity),
@@ -73,6 +75,7 @@ func (c *inventoryClient) CheckStock(ctx context.Context, productID string, quan
 		return false, fmt.Errorf("failed to check stock: %w", err)
 	}
 
+	log.Printf("[order-service] <- gRPC CheckStock available=%v message=%s", resp.Available, resp.Message)
 	return resp.Available, nil
 }
 
@@ -83,6 +86,7 @@ func (c *inventoryClient) ReserveStock(ctx context.Context, productID string, qu
 	defer cancel()
 
 	// Call inventory service
+	log.Printf("[order-service] -> gRPC ReserveStock product_id=%s qty=%d order_id=%s", productID, quantity, orderID)
 	resp, err := c.client.ReserveStock(ctx, &pb.ReserveStockRequest{
 		ProductId: productID,
 		Quantity:  int32(quantity),
@@ -96,6 +100,8 @@ func (c *inventoryClient) ReserveStock(ctx context.Context, productID string, qu
 		return fmt.Errorf("failed to reserve stock: %s", resp.Message)
 	}
 
+	log.Printf("[order-service] <- gRPC ReserveStock success=%v message=%s", resp.Success, resp.Message)
+
 	return nil
 }
 
@@ -106,6 +112,7 @@ func (c *inventoryClient) ReleaseStock(ctx context.Context, productID string, qu
 	defer cancel()
 
 	// Call inventory service
+	log.Printf("[order-service] -> gRPC ReleaseStock product_id=%s qty=%d order_id=%s", productID, quantity, orderID)
 	resp, err := c.client.ReleaseStock(ctx, &pb.ReleaseStockRequest{
 		ProductId: productID,
 		Quantity:  int32(quantity),
@@ -118,6 +125,8 @@ func (c *inventoryClient) ReleaseStock(ctx context.Context, productID string, qu
 	if !resp.Success {
 		return fmt.Errorf("failed to release stock: %s", resp.Message)
 	}
+
+	log.Printf("[order-service] <- gRPC ReleaseStock success=%v message=%s", resp.Success, resp.Message)
 
 	return nil
 }

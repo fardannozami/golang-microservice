@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/fardannozami/golang-microservice/order-service/repository"
 )
@@ -60,17 +61,7 @@ func (s *orderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 		return nil, err
 	}
 
-	// Check inventory availability for all items
-	for _, item := range req.Items {
-		available, err := s.inventoryClient.CheckStock(ctx, item.ProductID, item.Quantity)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check stock: %w", err)
-		}
-
-		if !available {
-			return nil, fmt.Errorf("product %s is not available in the requested quantity", item.ProductID)
-		}
-	}
+	// Do not pre-check inventory to avoid TOCTOU; rely on atomic reservation
 
 	// Create order
 	order := &repository.Order{
@@ -96,6 +87,7 @@ func (s *orderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 	// Reserve inventory for all items
 	var reservationErrors []error
 	for _, item := range order.Items {
+		log.Printf("[order-service] Reserving stock product_id=%s qty=%d order_id=%s", item.ProductID, item.Quantity, order.ID)
 		err := s.inventoryClient.ReserveStock(ctx, item.ProductID, item.Quantity, order.ID)
 		if err != nil {
 			reservationErrors = append(reservationErrors, err)

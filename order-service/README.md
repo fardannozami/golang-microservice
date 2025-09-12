@@ -149,6 +149,31 @@ go run cmd/main.go
 go test ./...
 ```
 
+## API Documentation (Swagger)
+
+The Order Service includes Swagger/OpenAPI documentation for all API endpoints. You can access the Swagger UI at:
+
+```
+http://localhost:8080/swagger/index.html
+```
+
+The Swagger UI provides:
+- Interactive documentation for all endpoints
+- Request/response schema details
+- The ability to test API endpoints directly from the browser
+
+### Generating Swagger Documentation
+
+If you make changes to the API, you need to regenerate the Swagger documentation:
+
+```bash
+# Install swag CLI if not already installed
+go install github.com/swaggo/swag/cmd/swag@latest
+
+# Generate Swagger docs
+swag init -g cmd/main.go -o ./docs
+```
+
 ## Docker
 
 ```bash

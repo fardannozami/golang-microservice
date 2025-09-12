@@ -7,6 +7,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// @title Order Service API
+// @version 1.0
+// @description API for managing orders in the microservice architecture
+// @host localhost:8080
+// @BasePath /api/v1
+
 // OrderHandler handles HTTP requests for orders
 type OrderHandler struct {
 	orderService service.OrderService
@@ -19,15 +25,15 @@ func NewOrderHandler(orderService service.OrderService) *OrderHandler {
 
 // CreateOrderRequest represents a request to create an order
 type CreateOrderRequest struct {
-	UserID string                   `json:"user_id" binding:"required"`
+	UserID string                   `json:"user_id" binding:"required" example:"123e4567-e89b-12d3-a456-426655440000"`
 	Items  []CreateOrderItemRequest `json:"items" binding:"required,dive"`
 }
 
 // CreateOrderItemRequest represents a request to create an order item
 type CreateOrderItemRequest struct {
-	ProductID string  `json:"product_id" binding:"required"`
-	Quantity  int     `json:"quantity" binding:"required,gt=0"`
-	Price     float64 `json:"price" binding:"required,gt=0"`
+	ProductID string  `json:"product_id" binding:"required" example:"prod-001"`
+	Quantity  int     `json:"quantity" binding:"required,gt=0" example:"2"`
+	Price     float64 `json:"price" binding:"required,gt=0" example:"10.99"`
 }
 
 // OrderResponse represents an order response
@@ -48,7 +54,16 @@ type OrderItemResponse struct {
 	Price     float64 `json:"price"`
 }
 
-// CreateOrder creates a new order
+// CreateOrder godoc
+// @Summary Create a new order
+// @Description Create a new order with the provided items
+// @Tags orders
+// @Accept json
+// @Produce json
+// @Param order body CreateOrderRequest true "Order details"
+// @Success 201 {object} OrderResponse
+// @Failure 400 {object} map[string]interface{}
+// @Router /orders [post]
 func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	// Parse request
 	var req CreateOrderRequest
@@ -102,7 +117,15 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	c.JSON(http.StatusCreated, resp)
 }
 
-// GetOrder gets an order by ID
+// GetOrder godoc
+// @Summary Get an order by ID
+// @Description Get an order by its ID
+// @Tags orders
+// @Accept json
+// @Produce json
+// @Param id path string true "Order ID"
+// @Success 200 {object} OrderResponse
+// @Router /orders/{id} [get]
 func (h *OrderHandler) GetOrder(c *gin.Context) {
 	// Get order ID from path
 	id := c.Param("id")
@@ -141,7 +164,14 @@ func (h *OrderHandler) GetOrder(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// ListOrders lists all orders
+// ListOrders godoc
+// @Summary List all orders
+// @Description Get a list of all orders
+// @Tags orders
+// @Accept json
+// @Produce json
+// @Success 200 {array} OrderResponse
+// @Router /orders [get]
 func (h *OrderHandler) ListOrders(c *gin.Context) {
 	// List orders
 	orders, err := h.orderService.ListOrders(c.Request.Context())

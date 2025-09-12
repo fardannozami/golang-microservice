@@ -11,10 +11,13 @@ import (
 	"time"
 
 	"github.com/fardannozami/golang-microservice/order-service/config"
+	"github.com/fardannozami/golang-microservice/order-service/docs"
 	"github.com/fardannozami/golang-microservice/order-service/handler"
 	"github.com/fardannozami/golang-microservice/order-service/repository"
 	"github.com/fardannozami/golang-microservice/order-service/service"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func main() {
@@ -24,6 +27,10 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 	fmt.Println(cfg)
+	
+	// Swagger configuration
+	docs.SwaggerInfo.Host = fmt.Sprintf("localhost:%d", cfg.ServerPort)
+	docs.SwaggerInfo.BasePath = "/api/v1"
 
 	// Initialize database connection
 	db, err := repository.NewPostgresConnection(cfg.DatabaseURL)
@@ -65,6 +72,9 @@ func main() {
 			orders.GET("/:id", orderHandler.GetOrder)
 		}
 	}
+	
+	// Swagger documentation route
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Start server
 	srv := &http.Server{

@@ -4,3 +4,6 @@ gen:
 
 seed-inventory:
 	@cd inventory-service && go run cmd/seed/main.go
+
+swagger-order:
+	@cd order-service && go install github.com/swaggo/swag/cmd/swag@latest && swag init -g cmd/main.go -o ./docs

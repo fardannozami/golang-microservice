@@ -98,6 +98,12 @@ docker-compose up
 docker-compose up order-service
 ```
 
+#### Auto Seeder
+
+The docker-compose configuration includes auto seeding for the inventory service. When you start the services using docker-compose, the inventory database will be automatically populated with sample data. This feature is enabled by setting the `RUN_SEEDER=true` environment variable in the docker-compose.yml file.
+
+To disable auto seeding, edit the docker-compose.yml file and set `RUN_SEEDER=false` or remove the environment variable.
+
 ### Running Locally
 
 ```bash
@@ -118,6 +124,9 @@ make test
 
 # Build all services
 make build
+
+# Seed inventory database with sample data
+make seed-inventory
 ```
 
 ## Project Structure

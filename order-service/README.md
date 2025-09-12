@@ -35,7 +35,7 @@ Request:
   "user_id": "user123",
   "items": [
     {
-      "product_id": "product123",
+      "product_id": "prod-001",
       "quantity": 2,
       "price": 29.99
     }
@@ -46,11 +46,11 @@ Response:
 {
   "id": "order123",
   "user_id": "user123",
-  "status": "pending",
+  "status": "confirmed",
   "items": [
     {
       "id": "item123",
-      "product_id": "product123",
+      "product_id": "prod-001",
       "quantity": 2,
       "price": 29.99
     }
@@ -71,7 +71,7 @@ Response:
 {
   "id": "order123",
   "user_id": "user123",
-  "status": "pending",
+  "status": "confirmed",
   "items": [...],
   "created_at": "2023-01-01T12:00:00Z",
   "updated_at": "2023-01-01T12:00:00Z"
@@ -90,7 +90,7 @@ Response:
   {
     "id": "order123",
     "user_id": "user123",
-    "status": "pending",
+    "status": "confirmed",
     "items": [...],
     "created_at": "2023-01-01T12:00:00Z",
     "updated_at": "2023-01-01T12:00:00Z"

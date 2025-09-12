@@ -123,6 +123,26 @@ go run cmd/main.go
 
 # Run tests
 go test ./...
+
+# Seed database with sample data
+make seed-inventory
+```
+
+## Seeder
+
+The service includes a data seeder to populate the database with sample products and inventory data. The seeder creates:
+
+- 5 sample products (Laptop Gaming, Smartphone, Headphone Bluetooth, Smart Watch, Wireless Earbuds)
+- Initial inventory quantities for each product
+
+To run the seeder:
+
+```bash
+# From project root
+make seed-inventory
+
+# Or directly
+cd inventory-service && go run cmd/seed/main.go
 ```
 
 ## Docker
@@ -131,8 +151,24 @@ go test ./...
 # Build the Docker image
 docker build -t inventory-service .
 
-# Run the container
+# Run the container without seeder
 docker run -p 9090:9090 \
   -e DATABASE_URL=postgres://postgres:postgres@postgres:5432/inventory_service \
   inventory-service
+
+# Run the container with auto seeder
+docker run -p 9090:9090 \
+  -e DATABASE_URL=postgres://postgres:postgres@postgres:5432/inventory_service \
+  -e RUN_SEEDER=true \
+  inventory-service
 ```
+
+### Auto Seeder in Docker
+
+The Docker image includes an entrypoint script that can automatically run the seeder before starting the service. To enable this feature:
+
+1. Set the environment variable `RUN_SEEDER=true` when running the container
+2. The seeder will populate the database with sample data before the service starts
+3. This is useful for development and testing environments
+
+**Note:** For production environments, it's recommended to disable auto seeding by setting `RUN_SEEDER=false` or omitting the environment variable.

@@ -51,17 +51,8 @@ func (s *inventoryService) ReserveStock(ctx context.Context, productID string, q
 		return fmt.Errorf("order ID is required")
 	}
 
-	// Check if stock is available
-	available, err := s.repo.CheckStock(ctx, productID, quantity)
-	if err != nil {
-		return fmt.Errorf("failed to check stock: %w", err)
-	}
-	if !available {
-		return fmt.Errorf("insufficient stock for product %s", productID)
-	}
-
-	// Reserve stock in repository
-	return s.repo.ReserveStock(ctx, productID, quantity)
+	// Directly reserve stock in repository with row-level locking to ensure atomicity
+	return s.repo.ReserveStock(ctx, productID, quantity, orderID)
 }
 
 // ReleaseStock releases reserved stock
@@ -78,5 +69,5 @@ func (s *inventoryService) ReleaseStock(ctx context.Context, productID string, q
 	}
 
 	// Release stock in repository
-	return s.repo.ReleaseStock(ctx, productID, quantity)
+	return s.repo.ReleaseStock(ctx, productID, quantity, orderID)
 }

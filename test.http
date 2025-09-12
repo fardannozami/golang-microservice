@@ -7,8 +7,8 @@ Content-Type: application/json
   "user_id": "customer123",
   "items": [
     {
-      "product_id": "product123",
-      "quantity": 2,
+      "product_id": "1",
+      "quantity": 11,
       "price": 10.99
     }
   ]

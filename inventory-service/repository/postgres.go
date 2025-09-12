@@ -55,5 +55,19 @@ func createTables(db *sql.DB) error {
 		return err
 	}
 
+	// Create reservations table for idempotent reservations
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS reservations (
+			order_id VARCHAR(255) NOT NULL,
+			product_id VARCHAR(255) NOT NULL REFERENCES products(id),
+			quantity INT NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			UNIQUE(order_id, product_id)
+		)
+	`)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

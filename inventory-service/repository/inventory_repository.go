@@ -26,8 +26,8 @@ type Inventory struct {
 // InventoryRepository defines the interface for inventory repository operations
 type InventoryRepository interface {
 	CheckStock(ctx context.Context, productID string, quantity int) (bool, error)
-	ReserveStock(ctx context.Context, productID string, quantity int) error
-	ReleaseStock(ctx context.Context, productID string, quantity int) error
+	ReserveStock(ctx context.Context, productID string, quantity int, orderID string) error
+	ReleaseStock(ctx context.Context, productID string, quantity int, orderID string) error
 	GetProduct(ctx context.Context, productID string) (*Product, error)
 	CreateProduct(ctx context.Context, product *Product) error
 	CreateInventory(ctx context.Context, inventory *Inventory) error
@@ -68,7 +68,7 @@ func (r *inventoryRepository) CheckStock(ctx context.Context, productID string, 
 }
 
 // ReserveStock reserves stock for an order
-func (r *inventoryRepository) ReserveStock(ctx context.Context, productID string, quantity int) error {
+func (r *inventoryRepository) ReserveStock(ctx context.Context, productID string, quantity int, orderID string) error {
 	// Start a transaction
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelSerializable,
@@ -98,14 +98,42 @@ func (r *inventoryRepository) ReserveStock(ctx context.Context, productID string
 		return fmt.Errorf("insufficient stock: available %d, requested %d", available, quantity)
 	}
 
-	// Update reserved quantity
+	// Idempotent reservation per order: compute delta against existing reservation
+	var previousReserved int
+	err = tx.QueryRowContext(
+		ctx,
+		"SELECT COALESCE((SELECT quantity FROM reservations WHERE order_id = $1 AND product_id = $2), 0)",
+		orderID, productID,
+	).Scan(&previousReserved)
+	if err != nil {
+		return fmt.Errorf("failed to read previous reservation: %w", err)
+	}
+
+	delta := quantity - previousReserved
+	if delta < 0 {
+		return fmt.Errorf("invalid reservation: requested less than already reserved")
+	}
+
+	if delta > 0 {
+		// Apply delta to inventory
+		_, err = tx.ExecContext(
+			ctx,
+			"UPDATE inventory SET reserved = reserved + $1, updated_at = $2 WHERE product_id = $3",
+			delta, time.Now(), productID,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to update inventory: %w", err)
+		}
+	}
+
+	// Upsert reservation record
 	_, err = tx.ExecContext(
 		ctx,
-		"UPDATE inventory SET reserved = reserved + $1, updated_at = $2 WHERE product_id = $3",
-		quantity, time.Now(), productID,
+		"INSERT INTO reservations(order_id, product_id, quantity) VALUES($1,$2,$3) ON CONFLICT(order_id, product_id) DO UPDATE SET quantity = EXCLUDED.quantity",
+		orderID, productID, quantity,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to update inventory: %w", err)
+		return fmt.Errorf("failed to upsert reservation: %w", err)
 	}
 
 	// Commit transaction
@@ -117,7 +145,7 @@ func (r *inventoryRepository) ReserveStock(ctx context.Context, productID string
 }
 
 // ReleaseStock releases reserved stock
-func (r *inventoryRepository) ReleaseStock(ctx context.Context, productID string, quantity int) error {
+func (r *inventoryRepository) ReleaseStock(ctx context.Context, productID string, quantity int, orderID string) error {
 	// Start a transaction
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelSerializable,
@@ -127,33 +155,57 @@ func (r *inventoryRepository) ReleaseStock(ctx context.Context, productID string
 	}
 	defer tx.Rollback()
 
-	// Query inventory with lock
+	// Query inventory with lock and reservation by this order
 	row := tx.QueryRowContext(
 		ctx,
-		"SELECT reserved FROM inventory WHERE product_id = $1 FOR UPDATE",
-		productID,
+		"SELECT i.reserved, COALESCE((SELECT quantity FROM reservations WHERE order_id = $1 AND product_id = $2), 0) AS reserved_by_order FROM inventory i WHERE i.product_id = $2 FOR UPDATE",
+		orderID, productID,
 	)
 
 	// Scan inventory
-	var reserved int
-	err = row.Scan(&reserved)
+	var reserved, reservedByOrder int
+	err = row.Scan(&reserved, &reservedByOrder)
 	if err != nil {
 		return fmt.Errorf("failed to scan inventory: %w", err)
 	}
 
-	// Check if reserved quantity is sufficient
-	if reserved < quantity {
-		return fmt.Errorf("invalid release: reserved %d, requested %d", reserved, quantity)
+	// Determine actual release amount (can't release more than reserved by this order)
+	releaseAmount := quantity
+	if releaseAmount > reservedByOrder {
+		releaseAmount = reservedByOrder
+	}
+	if releaseAmount <= 0 {
+		// Nothing to release
+		return nil
 	}
 
 	// Update reserved quantity
 	_, err = tx.ExecContext(
 		ctx,
 		"UPDATE inventory SET reserved = reserved - $1, updated_at = $2 WHERE product_id = $3",
-		quantity, time.Now(), productID,
+		releaseAmount, time.Now(), productID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update inventory: %w", err)
+	}
+
+	// Update or delete reservation record
+	remaining := reservedByOrder - releaseAmount
+	if remaining > 0 {
+		_, err = tx.ExecContext(
+			ctx,
+			"UPDATE reservations SET quantity = $1 WHERE order_id = $2 AND product_id = $3",
+			remaining, orderID, productID,
+		)
+	} else {
+		_, err = tx.ExecContext(
+			ctx,
+			"DELETE FROM reservations WHERE order_id = $1 AND product_id = $2",
+			orderID, productID,
+		)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to update reservation record: %w", err)
 	}
 
 	// Commit transaction

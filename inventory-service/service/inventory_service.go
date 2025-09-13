@@ -51,7 +51,16 @@ func (s *inventoryService) ReserveStock(ctx context.Context, productID string, q
 		return fmt.Errorf("order ID is required")
 	}
 
-	// Directly reserve stock in repository with row-level locking to ensure atomicity
+	// Check stock availability
+	available, err := s.repo.CheckStock(ctx, productID, quantity)
+	if err != nil {
+		return err
+	}
+	if !available {
+		return fmt.Errorf("insufficient stock")
+	}
+
+	// Reserve stock if available
 	return s.repo.ReserveStock(ctx, productID, quantity, orderID)
 }
 

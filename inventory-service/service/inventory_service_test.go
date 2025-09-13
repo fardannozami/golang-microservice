@@ -21,13 +21,13 @@ func (m *MockInventoryRepository) CheckStock(ctx context.Context, productID stri
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *MockInventoryRepository) ReserveStock(ctx context.Context, productID string, quantity int) error {
-	args := m.Called(ctx, productID, quantity)
+func (m *MockInventoryRepository) ReserveStock(ctx context.Context, productID string, quantity int, orderID string) error {
+	args := m.Called(ctx, productID, quantity, orderID)
 	return args.Error(0)
 }
 
-func (m *MockInventoryRepository) ReleaseStock(ctx context.Context, productID string, quantity int) error {
-	args := m.Called(ctx, productID, quantity)
+func (m *MockInventoryRepository) ReleaseStock(ctx context.Context, productID string, quantity int, orderID string) error {
+	args := m.Called(ctx, productID, quantity, orderID)
 	return args.Error(0)
 }
 
@@ -50,170 +50,106 @@ func (m *MockInventoryRepository) CreateInventory(ctx context.Context, inventory
 }
 
 func TestCheckStock_Success(t *testing.T) {
-	// Create mock
 	repo := new(MockInventoryRepository)
-
-	// Create service
 	inventoryService := service.NewInventoryService(repo)
 
-	// Set up expectations
 	repo.On("CheckStock", mock.Anything, "product123", 2).Return(true, nil)
 
-	// Call service
 	available, err := inventoryService.CheckStock(context.Background(), "product123", 2)
 
-	// Assert expectations
 	assert.NoError(t, err)
 	assert.True(t, available)
-
-	// Verify mock
 	repo.AssertExpectations(t)
 }
 
 func TestCheckStock_Unavailable(t *testing.T) {
-	// Create mock
 	repo := new(MockInventoryRepository)
-
-	// Create service
 	inventoryService := service.NewInventoryService(repo)
 
-	// Set up expectations
 	repo.On("CheckStock", mock.Anything, "product123", 2).Return(false, nil)
 
-	// Call service
 	available, err := inventoryService.CheckStock(context.Background(), "product123", 2)
 
-	// Assert expectations
 	assert.NoError(t, err)
 	assert.False(t, available)
-
-	// Verify mock
 	repo.AssertExpectations(t)
 }
 
 func TestCheckStock_Error(t *testing.T) {
-	// Create mock
 	repo := new(MockInventoryRepository)
-
-	// Create service
 	inventoryService := service.NewInventoryService(repo)
 
-	// Set up expectations
 	repo.On("CheckStock", mock.Anything, "product123", 2).Return(false, errors.New("database error"))
 
-	// Call service
 	available, err := inventoryService.CheckStock(context.Background(), "product123", 2)
 
-	// Assert expectations
 	assert.Error(t, err)
 	assert.False(t, available)
 	assert.Contains(t, err.Error(), "database error")
-
-	// Verify mock
 	repo.AssertExpectations(t)
 }
 
 func TestReserveStock_Success(t *testing.T) {
-	// Create mock
 	repo := new(MockInventoryRepository)
-
-	// Create service
 	inventoryService := service.NewInventoryService(repo)
 
-	// Set up expectations
 	repo.On("CheckStock", mock.Anything, "product123", 2).Return(true, nil)
-	repo.On("ReserveStock", mock.Anything, "product123", 2).Return(nil)
+	repo.On("ReserveStock", mock.Anything, "product123", 2, "order123").Return(nil)
 
-	// Call service
 	err := inventoryService.ReserveStock(context.Background(), "product123", 2, "order123")
 
-	// Assert expectations
 	assert.NoError(t, err)
-
-	// Verify mock
 	repo.AssertExpectations(t)
 }
 
 func TestReserveStock_Unavailable(t *testing.T) {
-	// Create mock
 	repo := new(MockInventoryRepository)
-
-	// Create service
 	inventoryService := service.NewInventoryService(repo)
 
-	// Set up expectations
 	repo.On("CheckStock", mock.Anything, "product123", 2).Return(false, nil)
 
-	// Call service
 	err := inventoryService.ReserveStock(context.Background(), "product123", 2, "order123")
 
-	// Assert expectations
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "insufficient stock")
-
-	// Verify mock
 	repo.AssertExpectations(t)
 }
 
 func TestReserveStock_ReservationError(t *testing.T) {
-	// Create mock
 	repo := new(MockInventoryRepository)
-
-	// Create service
 	inventoryService := service.NewInventoryService(repo)
 
-	// Set up expectations
 	repo.On("CheckStock", mock.Anything, "product123", 2).Return(true, nil)
-	repo.On("ReserveStock", mock.Anything, "product123", 2).Return(errors.New("reservation error"))
+	repo.On("ReserveStock", mock.Anything, "product123", 2, "order123").Return(errors.New("reservation error"))
 
-	// Call service
 	err := inventoryService.ReserveStock(context.Background(), "product123", 2, "order123")
 
-	// Assert expectations
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "reservation error")
-
-	// Verify mock
 	repo.AssertExpectations(t)
 }
 
 func TestReleaseStock_Success(t *testing.T) {
-	// Create mock
 	repo := new(MockInventoryRepository)
-
-	// Create service
 	inventoryService := service.NewInventoryService(repo)
 
-	// Set up expectations
-	repo.On("ReleaseStock", mock.Anything, "product123", 2).Return(nil)
+	repo.On("ReleaseStock", mock.Anything, "product123", 2, "order123").Return(nil)
 
-	// Call service
 	err := inventoryService.ReleaseStock(context.Background(), "product123", 2, "order123")
 
-	// Assert expectations
 	assert.NoError(t, err)
-
-	// Verify mock
 	repo.AssertExpectations(t)
 }
 
 func TestReleaseStock_Error(t *testing.T) {
-	// Create mock
 	repo := new(MockInventoryRepository)
-
-	// Create service
 	inventoryService := service.NewInventoryService(repo)
 
-	// Set up expectations
-	repo.On("ReleaseStock", mock.Anything, "product123", 2).Return(errors.New("release error"))
+	repo.On("ReleaseStock", mock.Anything, "product123", 2, "order123").Return(errors.New("release error"))
 
-	// Call service
 	err := inventoryService.ReleaseStock(context.Background(), "product123", 2, "order123")
 
-	// Assert expectations
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "release error")
-
-	// Verify mock
 	repo.AssertExpectations(t)
 }
